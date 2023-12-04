@@ -456,8 +456,8 @@ impl Node {
         }
         */
         let mut n = self.clone();
-        while !self.is_between_ring_e(id, self.node_inner.borrow().id,
-        self.successor()?.node_inner.borrow().id){
+        while !self.is_between_ring_e(id, n.node_inner.borrow().id,
+        n.successor()?.node_inner.borrow().id){
             n = n.closest_preceding_node(id)?;
         }
         Ok(n)
@@ -517,6 +517,7 @@ impl Node {
     }
 
     fn closest_preceding_node(&self, id: u8) -> Result<Node> {
+        /*
         for (index, finger) in self
             .node_inner
             .borrow()
@@ -547,6 +548,16 @@ impl Node {
             }
         }
         Ok(self.successor()?)
+        */
+        for i in (1..=BITLENGTH).rev(){
+            let node_inner =self.node_inner.borrow();
+            if node_inner.finger_table.get(i).node.is_some(){
+                if self.between(node_inner.finger_table.get(i).node.as_ref().unwrap().node_inner.borrow().id , node_inner.id, id){
+                    return Ok(node_inner.finger_table.get(i).node.clone().unwrap())
+                }
+            }
+        }
+        Ok(Self::new_inner(Rc::clone(&self.node_inner)))
     }
     /*
     fn fix_fingers(&mut self) -> Result<()>{

@@ -15,9 +15,9 @@ fn main() {
     node1.join(Some(node0.clone()));
     node2.join(Some(node1.clone()));
     //node2.join(Some(Node::new_inner(Rc::clone(&node0.node_inner))));
-    //node3.join(Some(node2.clone()));
-    //node4.join(Some(node3.clone()));
-    //node5.join(Some(node4.clone()));
+    node3.join(Some(node2.clone()));
+    node4.join(Some(node3.clone()));
+    node5.join(Some(node4.clone()));
     node0.pretty_print();
     node1.pretty_print();
     node2.pretty_print();
