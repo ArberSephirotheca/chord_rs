@@ -38,11 +38,6 @@ impl Finger {
     }
 
     fn set_node(&mut self, node: Node) {
-        dbg!(
-            "Node {}: set successor node to {}",
-            self.start,
-            node.node_inner.borrow().id
-        );
         self.node = Some(node);
     }
 }
@@ -54,7 +49,6 @@ impl<'a> FingerTable {
             let finger_id = FingerTable::finger_id(node_id, i);
             finger_table.push(Some(Finger::new(finger_id, None)));
         }
-        //finger_table.reserve((2u32.pow(BITLENGTH as u32) + 1) as usize);
 
         Self {
             node_id,
@@ -148,7 +142,7 @@ impl<'a> FingerTable {
                     interval_right = self.get_start((i + 1) as u8).unwrap();
                 }
                 println!(
-                    "| k =  {} [ {}, {} )\tsucc. = {}",
+                    "| k =  {} [ {} , {} )\tsucc. = {}\t|",
                     i,
                     finger.as_ref().unwrap().start,
                     interval_right,
@@ -164,7 +158,6 @@ impl<'a> FingerTable {
             }
         }
         println!("------------------------------");
-        println!("******************************");
     }
 }
 
@@ -203,12 +196,6 @@ impl Node {
         // first node to join the chord
         } else {
             for i in 1..=BITLENGTH {
-                let finger_id = FingerTable::finger_id(self.node_inner.borrow().id, i);
-                println!(
-                    "Node {} join function: finger id = {}",
-                    self.node_inner.borrow().id,
-                    finger_id
-                );
                 self.node_inner
                     .borrow_mut()
                     .finger_table
@@ -218,29 +205,13 @@ impl Node {
                 .borrow_mut()
                 .finger_table
                 .set_predecessor(Some(Self::new_inner(Rc::clone(&self.node_inner))));
-            dbg!(
-                "Node {}: set predecessor to myself as it is the only node in chord",
-                self.node_inner.borrow().id
-            );
             Ok(())
         }
     }
 
     pub fn init_finger_table(&mut self, node: Node) -> Result<()> {
-        dbg!(
-            "Node {}: initialize finger table as new Node {} joined",
-            self.node_inner.borrow().id,
-            node.node_inner.borrow().id
-        );
-
         let node_successor =
             node.find_successor(self.node_inner.borrow().finger_table.get_start(1)?)?;
-
-            dbg!(
-            "Node {}: Set successor to {}",
-            self.node_inner.borrow().id,
-            node_successor.node_inner.borrow().id
-        );
         self.node_inner
             .borrow_mut()
             .finger_table
@@ -252,21 +223,12 @@ impl Node {
             .borrow_mut()
             .finger_table
             .set_predecessor(predecessor);
-        dbg!(
-            "Node {}: set predecessor to {}",
-            self.node_inner.borrow().id,
-            self.node_inner.borrow().finger_table.get_predecessor_id()
-        );
+
         self.successor()?
             .node_inner
             .borrow_mut()
             .finger_table
             .set_predecessor(Some(Self::new_inner(Rc::clone(&self.node_inner))));
-        dbg!(
-            "Node {}: set predecessor to {}",
-            self.node_inner.borrow().finger_table.get_successor_id(),
-            self.node_inner.borrow().id
-        );
 
         for i in 1..=BITLENGTH - 1 {
             let self_id = self.node_inner.borrow().id;
@@ -281,18 +243,10 @@ impl Node {
                     finger_pre.node.as_ref().unwrap().node_inner.borrow().id,
                 )
             {
-                dbg!(
-                    "Node {}: finger is not null/between for index {}",
-                    self_id, i
-                );
                 node_inner.finger_table.set(i + 1, finger_pre.node.unwrap());
                 //finger.set_node(finger_pre.node.unwrap());
                 //finger.node = finger_pre.node;
             } else {
-                dbg!(
-                    "Node {}: finger is null/not between for index {}",
-                    self_id, i
-                );
                 node_inner
                     .finger_table
                     .set(i + 1, node.find_successor(finger.start)?);
@@ -304,22 +258,10 @@ impl Node {
     }
 
     fn update_others(&mut self) -> Result<()> {
-        dbg!("Node {}: update others", self.node_inner.borrow().id);
         for i in 1..=BITLENGTH {
             let offset = 2u8.pow((i - 1) as u32);
             let prev = Self::decrease(self.node_inner.borrow().id, offset);
-            dbg!(
-                "Node {}: find previous node {}",
-                self.node_inner.borrow().id,
-                prev
-            );
             let mut p = self.find_predecessor(prev)?.clone();
-            dbg!(
-                "Node {}: find predecessor {} of node {}",
-                self.node_inner.borrow().id,
-                p.node_inner.borrow().id,
-                prev
-            );
 
             if prev == p.successor()?.node_inner.borrow().id {
                 p = p.successor()?;
@@ -332,16 +274,10 @@ impl Node {
 
     fn update_finger_table(&mut self, node: Node, index: u8) {
         assert_ne!(index, 0);
-        dbg!(
-            "Node {}: update finger table at index {}",
-            self.node_inner.borrow().id,
-            index
-        );
         let n_id = self.node_inner.borrow().id;
         let s_id = node.node_inner.borrow().id;
 
         if s_id != n_id {
-            dbg!("s id != n id");
             let f_id = self
                 .node_inner
                 .borrow()
@@ -353,69 +289,79 @@ impl Node {
                 .node_inner
                 .borrow()
                 .id;
-            dbg!("s id: {}, n id: {}, f id: {}", s_id, n_id, f_id);
             if self.e_is_between_ring(s_id, n_id, f_id) {
                 self.node_inner
                     .borrow_mut()
                     .finger_table
                     .set(index, node.clone());
-                dbg!(
-                    "Node {}: update index {} to node {}",
-                    self.node_inner.borrow().id,
-                    index,
-                    node.node_inner.borrow().id
-                );
                 //self.node_inner.borrow().finger_table.get(index).node = Some(node.clone());
                 let predecessor = self.predecessor();
                 if let Some(mut pre) = predecessor {
-                    dbg!(
-                        "Node {}: we have predecessor, update index {}",
-                        self.node_inner.borrow().id,
-                        index
-                    );
                     pre.update_finger_table(node.clone(), index);
                 }
             }
         }
     }
 
+    fn update_finger_table_leave(&mut self, node: Node, index: u8, leav_id: u8) {
+        let n_id = self.node_inner.borrow().id;
+        let s_id = node.node_inner.borrow().id;
+
+        if s_id != n_id {
+            let f_id = self
+                .node_inner
+                .borrow()
+                .finger_table
+                .get(index)
+                .node
+                .as_ref()
+                .unwrap()
+                .node_inner
+                .borrow()
+                .id;
+            if f_id == leav_id {
+                self.node_inner
+                    .borrow_mut()
+                    .finger_table
+                    .set(index, node.clone());
+                //self.node_inner.borrow().finger_table.get(index).node = Some(node.clone());
+                let predecessor = self.predecessor();
+                if let Some(mut pre) = predecessor {
+                    pre.update_finger_table_leave(node.clone(), index, leav_id);
+                }
+            }
+        }
+    }
+
     pub fn leave(&mut self) -> Result<()> {
-        let succ_predecessor = self.successor()?.predecessor().unwrap();
+        let successor = self.successor()?;
         let predecessor: Option<Node> = self.predecessor();
-        succ_predecessor
+
+        successor
             .node_inner
             .borrow_mut()
             .finger_table
             .set_predecessor(predecessor);
+
         self.predecessor()
             .unwrap()
             .node_inner
             .borrow_mut()
             .finger_table
-            .set_successor(self.successor()?);
+            .set_successor(successor);
+
         self.transfer_keys_leave();
         self.update_others_leave()?;
         Ok(())
     }
 
     fn update_others_leave(&self) -> Result<()> {
-        dbg!("Node {}: update others leave", self.node_inner.borrow().id);
+        let leave_id = self.node_inner.borrow().id;
         for i in 1..=BITLENGTH {
             let offset = 2u8.pow((i - 1) as u32);
             let prev = Self::decrease(self.node_inner.borrow().id, offset);
-            dbg!(
-                "Node {}: find previous node {}",
-                self.node_inner.borrow().id,
-                prev
-            );
             let mut p = self.find_predecessor(prev)?.clone();
-            dbg!(
-                "Node {}: find predecessor {} of node {}",
-                self.node_inner.borrow().id,
-                p.node_inner.borrow().id,
-                prev
-            );
-            p.update_finger_table(self.successor()?, i);
+            p.update_finger_table_leave(self.successor()?, i, leave_id);
         }
         Ok(())
     }
@@ -431,62 +377,28 @@ impl Node {
         print!("{{");
         for (i, (k, v)) in self.node_inner.borrow().local_keys.iter().enumerate() {
             let mut val: String;
-            if v.is_none(){
+            if v.is_none() {
                 val = "None".to_string();
-            }else{
+            } else {
                 val = v.unwrap().to_string();
             }
-            if i >= (key_len-1){
+            if i >= (key_len - 1) {
                 print!("{}: {}", k, val);
-            }else{
+            } else {
                 print!("{}: {}, ", k, val);
             }
         }
         println!("}}");
     }
 
-    pub fn print_lookup_results(&self){
+    pub fn print_lookup_results(&self) {
         let id = self.node_inner.borrow().id;
         println!("----------Node id:{}----------", id);
-        for result in self.node_inner.borrow().lookup_info.iter(){
+        for result in self.node_inner.borrow().lookup_info.iter() {
             println!("{}", result);
         }
+        println!("------------------------------");
     }
-    /*
-    fn join_stablize(&mut self, node: Option<Node>) -> Result<()>{
-
-        self.finger_table.set_predecessor(None);
-        if let Some(n) = node{
-            self.finger_table.set_succesor(n);
-            Ok(())
-        }else{
-            Ok(())
-        }
-    }
-    */
-
-    /*
-    fn stablize(&mut self) -> Result<()>{
-        let n = self.successor()?;
-        let result = n.borrow().predecessor();
-        if let Some(x) = result{
-            if self.is_between_ring(x.borrow().id, self.id, n.borrow().id){
-            self.finger_table.set_succesor(Rc::clone(&x));
-            }
-        }
-
-        let mut new_successor = self.successor()?;
-        new_successor.borrow_mut().notify(Rc::new(RefCell::new(*self)))
-    }
-
-    fn notify(&mut self, node: Node) -> Result<()>{
-        let predecessor = self.predecessor();
-        if predecessor.is_none() || self.is_between_ring(node.borrow().id, predecessor.unwrap().borrow().id, self.id){
-            self.finger_table.set_predecessor(Some(node));
-        }
-        Ok(())
-    }
-    */
 
     pub fn find(&self, key: u8) -> Option<u8> {
         let successor = self.find_successor(key).unwrap();
@@ -495,9 +407,9 @@ impl Node {
         if successor.node_inner.borrow().local_keys.contains_key(&key) {
             let value = successor.node_inner.borrow().local_keys[&key];
             let mut v: String;
-            if value.is_none(){
+            if value.is_none() {
                 v = "None".to_string();
-            }else{
+            } else {
                 v = value.unwrap().to_string();
             }
 
@@ -546,12 +458,12 @@ impl Node {
                     "migrate key {} from node {} to node {}",
                     k, successor_id, self_id
                 ));
-                self.insert(*k, *v);
+                self.node_inner.borrow_mut().local_keys.insert(*k, *v);
                 del_keys.push(*k);
             }
         }
         for key in del_keys {
-            successor.remove(key);
+            successor.node_inner.borrow_mut().local_keys.remove(&key);
         }
 
         if !migrations.is_empty() {
@@ -606,14 +518,10 @@ impl Node {
     }
 
     fn find_successor(&self, id: u8) -> Result<Node> {
-        println!(
-            "Node {}: find successor for index {}",
-            self.node_inner.borrow().id,
-            id
-        );
         let n = self.find_predecessor(id)?;
         n.successor()
     }
+
     fn decrease(value: u8, size: u8) -> u8 {
         if size <= value {
             value - size
@@ -634,17 +542,14 @@ impl Node {
     }
 
     fn is_between_ring_e(&self, id: u8, node1: u8, node2: u8) -> bool {
-        println!("Node {}: n'= {}, n'.successor= {}", id, node1, node2);
-
         if id == node2 {
             true
         } else {
             self.between(id, node1, node2)
         }
     }
-    fn e_is_between_ring(&self, id: u8, node1: u8, node2: u8) -> bool {
-        println!("Node {}: n'= {}, n'.successor= {}", id, node1, node2);
 
+    fn e_is_between_ring(&self, id: u8, node1: u8, node2: u8) -> bool {
         if id == node1 {
             true
         } else {
@@ -667,7 +572,8 @@ impl Node {
     fn closest_preceding_node(&self, id: u8) -> Result<Node> {
         for i in (1..=BITLENGTH).rev() {
             let node_inner = self.node_inner.borrow();
-            if node_inner.finger_table.get(i).node.is_some() && self.between(
+            if node_inner.finger_table.get(i).node.is_some()
+                && self.between(
                     node_inner
                         .finger_table
                         .get(i)
@@ -679,21 +585,11 @@ impl Node {
                         .id,
                     node_inner.id,
                     id,
-                ) {
+                )
+            {
                 return Ok(node_inner.finger_table.get(i).node.clone().unwrap());
             }
         }
         Ok(Self::new_inner(Rc::clone(&self.node_inner)))
     }
-    /*
-    fn fix_fingers(&mut self) -> Result<()>{
-        for i in 0..self.finger_table.finger_table.len(){
-            let finger_id = FingerTable::finger_id(self.id, (i+1) as u8);
-            if let Ok(successor) = self.find_successor(finger_id){
-                self.finger_table.finger_table[i].as_mut().unwrap().node = successor.clone();
-            }
-        }
-        Ok(())
-    }
-    */
 }
