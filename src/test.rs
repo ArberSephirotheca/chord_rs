@@ -44,7 +44,7 @@ mod tests {
         n5.print_keys();
 
         let mut n6 = Node::new(100);
-        n5.join(Some(n6.clone()));
+        n6.join(Some(n5.clone()));
 
         n0.find(3);
         n0.find(200);

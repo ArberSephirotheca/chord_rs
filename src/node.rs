@@ -376,14 +376,15 @@ impl Node {
             }
         }
     }
-    
+
     pub fn leave(&mut self) -> Result<()> {
-        let predecessor = self.successor()?.predecessor().unwrap();
-        predecessor
+        let succ_predecessor = self.successor()?.predecessor().unwrap();
+        let predecessor: Option<Node> = self.predecessor();
+        succ_predecessor
             .node_inner
             .borrow_mut()
             .finger_table
-            .set_predecessor(self.predecessor());
+            .set_predecessor(predecessor);
         self.predecessor()
             .unwrap()
             .node_inner
@@ -425,8 +426,8 @@ impl Node {
         let id = self.node_inner.borrow().id;
         println!("----------Node id:{}----------", id);
         print!("{{");
-        for (k, v) in self.node_inner.borrow().local_keys.iter() {
-            print!("{}: {:#?}", k, v);
+        for (k, v) in self.node_inner.borrow().local_keys.iter().enumerate() {
+            print!("{}: {:?}, ", k, v);
         }
         println!("}}");
     }
