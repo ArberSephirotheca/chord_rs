@@ -1,7 +1,8 @@
+mod client;
 mod node;
-use std::rc::Rc;
-
+mod test;
 use node::Node;
+
 //mod node_store;
 fn main() {
     let mut node0 = Node::new(0);
@@ -21,5 +22,4 @@ fn main() {
     node0.pretty_print();
     node1.pretty_print();
     node2.pretty_print();
-
 }
