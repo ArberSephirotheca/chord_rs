@@ -376,7 +376,7 @@ impl Node {
         println!("----------Node id:{}----------", id);
         print!("{{");
         for (i, (k, v)) in self.node_inner.borrow().local_keys.iter().enumerate() {
-            let mut val: String;
+            let val: String;
             if v.is_none() {
                 val = "None".to_string();
             } else {
@@ -406,7 +406,7 @@ impl Node {
         let self_id = self.node_inner.borrow().id;
         if successor.node_inner.borrow().local_keys.contains_key(&key) {
             let value = successor.node_inner.borrow().local_keys[&key];
-            let mut v: String;
+            let v: String;
             if value.is_none() {
                 v = "None".to_string();
             } else {
@@ -445,7 +445,7 @@ impl Node {
     }
 
     fn transfer_keys(&mut self) {
-        let mut successor = self.successor().unwrap();
+        let successor = self.successor().unwrap();
         let mut del_keys = Vec::<u8>::new();
         let mut migrations = Vec::<String>::new();
         let successor_id = successor.node_inner.borrow().id;
